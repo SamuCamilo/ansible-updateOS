@@ -53,6 +53,3 @@ ansible-playbook playbooks/update_os.yml --check --diff
 - `playbooks/update_os.yml` - playbook principal
 - `roles/os_update` - role responsável por atualizar e checar reboot
 - `inventory/production` - inventário + vars
-
-## Licença
-MIT (se quiser, adicione um arquivo LICENSE com o texto padrão).
