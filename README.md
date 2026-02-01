@@ -1,4 +1,4 @@
-# Ansible - Atualização segura de OS (cPanel/DirectAdmin) sem tocar no que o painel gerencia
+# Ansible - Atualização segura de OS (cPanel/DirectAdmin)
 
 Este projeto atualiza pacotes do sistema em servidores:
 - CentOS 7/8/9 (obs: CentOS Linux 8 está EOL; use com cuidado)
