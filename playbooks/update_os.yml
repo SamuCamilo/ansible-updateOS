@@ -1,0 +1,21 @@
+---
+- name: Atualizar OS com segurança (sem mexer no que o painel gerencia)
+  hosts: all
+  gather_facts: true
+  become: true
+
+  pre_tasks:
+    - name: Garantir pasta de logs no controlador (local)
+      ansible.builtin.file:
+        path: "{{ playbook_dir }}/../logs"
+        state: directory
+        mode: "0755"
+      delegate_to: localhost
+      run_once: true
+
+    - name: Mostrar janela de manutenção (informativo)
+      ansible.builtin.debug:
+        msg: "Maintenance window: {{ maintenance_window }}"
+
+  roles:
+    - role: os_update

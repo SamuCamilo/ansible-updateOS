@@ -1,0 +1,15 @@
+# Usuário SSH padrão (ajuste conforme seu ambiente)
+ansible_user: root
+# Se você usa usuário não-root:
+# ansible_user: seuuser
+# become: true
+
+# Configurações comuns
+os_update_reboot_check: true
+os_update_security_only: false   # true = aplicar somente security updates (quando suportado)
+os_update_update_cache: true
+os_update_skip_broken: true
+os_update_exclude_extra: []      # lista extra de padrões para excluir, comum a todos
+
+# Defina janela de manutenção/observação apenas para log (opcional)
+maintenance_window: "N/A"

@@ -1,0 +1,21 @@
+---
+# Se true, verifica reboot necessário e loga aviso.
+os_update_reboot_check: true
+
+# Se true, tenta aplicar somente updates de segurança (quando suportado)
+os_update_security_only: false
+
+# Se true, atualiza cache do gerenciador de pacotes
+os_update_update_cache: true
+
+# Se true, usa skip_broken (especialmente útil em EL7 em casos pontuais)
+os_update_skip_broken: true
+
+# Lista extra global (ex.: ["kernel*", "docker*"] se quiser)
+os_update_exclude_extra: []
+
+# Lista vinda de group_vars/host_vars para o painel
+os_update_exclude_panel: []
+
+# Forçar tipo de painel (cpanel|directadmin) ou deixar auto-detect
+panel_type: "auto"

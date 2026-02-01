@@ -1,0 +1,7 @@
+panel_type: directadmin
+
+# Padrões de pacotes a NÃO atualizar em servidores DirectAdmin
+# (tende a ser menor; ajuste conforme seu CustomBuild)
+os_update_exclude_panel:
+  - "directadmin*"
+  - "custombuild*"

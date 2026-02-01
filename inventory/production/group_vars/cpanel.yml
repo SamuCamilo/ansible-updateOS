@@ -1,0 +1,19 @@
+# Você pode forçar a detecção do painel (opcional):
+panel_type: cpanel
+
+# Padrões de pacotes a NÃO atualizar em servidores cPanel
+# Ajuste conforme seu ambiente / stack.
+os_update_exclude_panel:
+  - "cpanel*"
+  - "ea-*"
+  - "wp-toolkit*"
+  - "cagefs*"
+  - "alt-php*"
+  - "alt-python*"
+  - "alt-nodejs*"
+  - "alt-ruby*"
+
+# Exemplo: se você quiser evitar updates de MariaDB/Percona gerenciados via painel:
+# os_update_exclude_panel:
+#   - "MariaDB*"
+#   - "percona-*"

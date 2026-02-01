@@ -1,0 +1,131 @@
+---
+- name: Validar distribuição suportada (EL-like)
+  ansible.builtin.assert:
+    that:
+      - ansible_facts.os_family == "RedHat"
+      - ansible_facts.distribution_major_version is defined
+    fail_msg: "Este playbook foi feito para RHEL-like (CentOS/Alma/CloudLinux)."
+    success_msg: "Distribuição suportada: {{ ansible_facts.distribution }} {{ ansible_facts.distribution_major_version }}"
+
+- name: Detectar painel automaticamente (se não forçado)
+  ansible.builtin.set_fact:
+    detected_panel: >-
+      {% if (ansible_facts['panel_type'] is defined) and (ansible_facts['panel_type']|length > 0) %}
+      {{ ansible_facts['panel_type'] }}
+      {% elif (panel_type is defined) and (panel_type != 'auto') %}
+      {{ panel_type }}
+      {% elif ansible_facts['exists_cpanel'] is defined and ansible_facts['exists_cpanel'] %}
+      cpanel
+      {% elif ansible_facts['exists_directadmin'] is defined and ansible_facts['exists_directadmin'] %}
+      directadmin
+      {% else %}
+      unknown
+      {% endif %}
+
+- name: Checar presença de cPanel
+  ansible.builtin.stat:
+    path: /usr/local/cpanel
+  register: st_cpanel
+
+- name: Checar presença de DirectAdmin
+  ansible.builtin.stat:
+    path: /usr/local/directadmin
+  register: st_directadmin
+
+- name: Consolidar tipo de painel (auto-detect)
+  ansible.builtin.set_fact:
+    panel_detected: >-
+      {% if (panel_type is defined) and (panel_type != 'auto') %}
+      {{ panel_type }}
+      {% elif st_cpanel.stat.exists %}
+      cpanel
+      {% elif st_directadmin.stat.exists %}
+      directadmin
+      {% else %}
+      unknown
+      {% endif %}
+
+- name: Informar painel detectado
+  ansible.builtin.debug:
+    msg: "Painel detectado: {{ panel_detected }} (forçado: {{ panel_type }})"
+
+- name: Calcular lista final de exclusões
+  ansible.builtin.set_fact:
+    os_update_exclude_final: "{{ (os_update_exclude_panel | default([])) + (os_update_exclude_extra | default([])) }}"
+
+- name: Mostrar exclusões aplicadas
+  ansible.builtin.debug:
+    var: os_update_exclude_final
+
+- name: Instalar utilitário para checar reboot (yum-utils/dnf-utils)
+  ansible.builtin.package:
+    name: "{{ reboot_utils_pkg }}"
+    state: present
+  vars:
+    reboot_utils_pkg: >-
+      {% if ansible_facts.pkg_mgr == 'dnf' %}
+      dnf-utils
+      {% else %}
+      yum-utils
+      {% endif %}
+  when: os_update_reboot_check | bool
+
+- name: Atualizar pacotes usando YUM (EL7 e casos com pkg_mgr=yum)
+  ansible.builtin.yum:
+    name: "*"
+    state: latest
+    update_cache: "{{ os_update_update_cache | bool }}"
+    security: "{{ os_update_security_only | bool }}"
+    skip_broken: "{{ os_update_skip_broken | bool }}"
+    exclude: "{{ os_update_exclude_final | default([]) }}"
+  register: update_result_yum
+  when: ansible_facts.pkg_mgr == "yum"
+
+- name: Atualizar pacotes usando DNF (EL8/EL9 e casos com pkg_mgr=dnf)
+  ansible.builtin.dnf:
+    name: "*"
+    state: latest
+    update_cache: "{{ os_update_update_cache | bool }}"
+    security: "{{ os_update_security_only | bool }}"
+    skip_broken: "{{ os_update_skip_broken | bool }}"
+    exclude: "{{ os_update_exclude_final | default([]) }}"
+  register: update_result_dnf
+  when: ansible_facts.pkg_mgr == "dnf"
+
+- name: Consolidar resultado de update (resumo)
+  ansible.builtin.set_fact:
+    update_changed: >-
+      {% if ansible_facts.pkg_mgr == 'yum' %}
+      {{ update_result_yum.changed | default(false) }}
+      {% else %}
+      {{ update_result_dnf.changed | default(false) }}
+      {% endif %}
+
+- name: Logar se houve mudanças
+  ansible.builtin.debug:
+    msg: >-
+      Update aplicado? {{ update_changed }}
+      | Distro: {{ ansible_facts.distribution }} {{ ansible_facts.distribution_version }}
+      | Kernel atual: {{ ansible_facts.kernel }}
+
+- name: Checar se reboot é necessário (needs-restarting -r)
+  ansible.builtin.command: needs-restarting -r
+  register: reboot_check
+  changed_when: false
+  failed_when: false
+  when: os_update_reboot_check | bool
+
+- name: Aviso em DESTAQUE se reboot for necessário
+  ansible.builtin.debug:
+    msg: |
+      #############################################
+      !!! REBOOT NECESSÁRIO !!!
+      Host: {{ inventory_hostname }}
+      Motivo: 'needs-restarting -r' retornou RC={{ reboot_check.rc }}
+      Saída: {{ reboot_check.stdout | default('') }}
+      #############################################
+  when:
+    - os_update_reboot_check | bool
+    - reboot_check is defined
+    - reboot_check.rc is defined
+    - reboot_check.rc != 0
